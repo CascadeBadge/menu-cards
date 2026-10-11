@@ -1,0 +1,17 @@
+node_modules
+dist
+.output
+.nitro
+.vercel
+screenshots
+artifacts
+attachments
+.tanstack
+.grok/skills
+.grok/references
+.grok/og-pending
+.project_id
+.node_modules.lock
+.grok/status
+
+

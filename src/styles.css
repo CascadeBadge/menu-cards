@@ -1,0 +1,65 @@
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Outfit:wght@400;500;600&display=swap");
+@import "tailwindcss";
+
+@theme {
+  --color-bg: #141311;
+  --color-surface: #1e1c18;
+  --color-raised: #2a2722;
+  --color-fg: #f3efe4;
+  --color-muted: #b1a89a;
+  --color-faint: #7c756a;
+  --color-line: #3a362e;
+  --color-accent: #e2a23b;
+  --color-ink: #1c160c;
+  --color-warn: #e07a5a;
+  --font-sans: "Outfit", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+
+@layer base {
+  html {
+    background: var(--color-bg);
+    color: var(--color-fg);
+  }
+  body {
+    min-height: 100dvh;
+    font-family: var(--font-sans);
+    background: var(--color-bg);
+    color: var(--color-fg);
+    -webkit-font-smoothing: antialiased;
+  }
+  button:not(:disabled),
+  [role="button"]:not(:disabled),
+  summary {
+    cursor: pointer;
+  }
+  input,
+  textarea {
+    font: inherit;
+  }
+  ::selection {
+    background: var(--color-accent);
+    color: var(--color-ink);
+  }
+}
+
+@layer components {
+  .field {
+    min-width: 0;
+    width: 100%;
+    min-height: 2.75rem;
+    border-radius: 0.75rem;
+    border: 1px solid var(--color-line);
+    background: var(--color-bg);
+    color: var(--color-fg);
+    padding: 0.5rem 0.75rem;
+    font-size: 1rem;
+    outline: none;
+  }
+  .field:focus {
+    border-color: var(--color-accent);
+  }
+  .dock {
+    padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+  }
+}
