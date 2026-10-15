@@ -1,3 +1,6 @@
+# Cloudflare Pages, Vite preset:
+#   Build command: npm run build
+#   Build output directory: dist
 name = "menu-cards"
 compatibility_date = "2026-10-15"
-pages_build_output_dir = "dist"
+pages_build_output_dir = "./dist"

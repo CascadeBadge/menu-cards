@@ -18,12 +18,18 @@ const indexPath = join(source, "index.html");
 const build = spawnSync(
   process.execPath,
   ["scripts/with-app-env.mjs", "vite", "build", "--config", "vite.pages.config.ts"],
-  { cwd: root, stdio: "inherit" },
+  {
+    cwd: root,
+    stdio: "inherit",
+    // Auth talks to a server this static host does not have. Force it off even
+    // when `.grok/app-env.json` is missing (it is not in the git repo).
+    env: { ...process.env, VITE_AUTH_ENABLED: "false" },
+  },
 );
 
 const html = existsSync(indexPath) ? readFileSync(indexPath, "utf8") : "";
 const asset = html.match(/src="(\/assets\/[^"]+\.js)"/);
-if (!html.includes("Menu Cards") || !asset) {
+if (!html.includes("Menu Cards") || !html.includes("Shortcut lists") || !asset) {
   console.error("[pages] static index.html was not produced");
   process.exit(build.status || 1);
 }
