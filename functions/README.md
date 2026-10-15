@@ -23,3 +23,10 @@ This site sits behind a shared access-code gate implemented in
 - To CHANGE the code: update the `ACCESS_CODE` env var in Cloudflare (and the
   GitHub secret). No code deploy needed.
 - To REMOVE the gate: delete `_middleware.js`.
+
+## Cloudflare Pages deployment
+
+- Build command: `npm run build:pages` (builds with `vite.pages.config.ts`, then copies static output to `dist/`)
+- Build output directory: `dist`
+- The `functions/` directory at the repo root is deployed as Pages Functions (see the access gate docs above).
+- Sign-in is disabled for the static deployment (`VITE_AUTH_ENABLED=false` is forced during the pages build).
