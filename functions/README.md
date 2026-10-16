@@ -30,3 +30,10 @@ This site sits behind a shared access-code gate implemented in
 - Build output directory: `dist`
 - The `functions/` directory at the repo root is deployed as Pages Functions (see the access gate docs above).
 - Sign-in is disabled for the static deployment (`VITE_AUTH_ENABLED=false` is forced during the pages build).
+
+- The project sets the `npm_config_legacy_peer_deps=true` environment variable
+  (Cloudflare Pages project settings). npm reads `npm_config_*` env vars as
+  config: this makes the dependency install skip strict peer-dependency
+  resolution, working around an npm 10 crash (`edgesOut` in arborist) triggered
+  by the vitest 4.x peer graph pulled in via vite 8's `@vitejs/devtools`.
+  Do NOT remove this variable unless the underlying npm bug is fixed.
