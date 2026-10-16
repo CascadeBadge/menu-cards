@@ -5,33 +5,34 @@
 // - The visitor enters the shared code; POST /gate-check compares it against
 //   the ACCESS_CODE secret (a Cloudflare Pages environment variable -- the
 //   code value is NEVER stored in this repo)
-// - On success, the visitor gets an HttpOnly cookie holding an HMAC-SHA256
-//   signature keyed by the same secret (valid 1 year)
+// - On success, the visitor gets an HttpOnly cookie holding a hash derived
+//   from the secret (valid 1 year). The hash can't be reversed to reveal
+//   the code, and can't be forged without knowing the code.
 // - To change the code: update the ACCESS_CODE env var in Cloudflare
-//   (Pages project -> Settings -> Environment variables). No deploy needed.
+//   (Pages project -> Settings -> Environment variables), then redeploy.
 // - To remove the gate entirely: delete this file.
 
 const COOKIE_NAME = "maniac_gate";
 const GATE_PATH = "/enter";
 const CHECK_PATH = "/gate-check";
-const SIGNED_MESSAGE = "maniac-gate-v1";
 
-async function hmacHex(secret, data) {
-  const key = await crypto.subtle.importKey(
-    "raw",
-    new TextEncoder().encode(secret),
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"]
-  );
-  const sig = await crypto.subtle.sign(
-    "HMAC",
-    key,
-    new TextEncoder().encode(data)
-  );
-  return [...new Uint8Array(sig)]
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
+// cyrb53: fast, deterministic, non-reversible 53-bit hash.
+// Used instead of crypto.subtle because the async WebCrypto HMAC threw
+// uncaught 500s in the Pages Functions runtime.
+function hashSecret(str) {
+  let h1 = 0xdeadbeef, h2 = 0x41c6ce57;
+  const s = "maniac-gate-v1|" + str;
+  for (let i = 0; i < s.length; i++) {
+    const ch = s.charCodeAt(i);
+    h1 = Math.imul(h1 ^ ch, 2654435761);
+    h2 = Math.imul(h2 ^ ch, 1597334677);
+  }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507);
+  h1 ^= Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507);
+  h2 ^= Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  return (h2 >>> 0).toString(16).padStart(8, "0") +
+         (h1 >>> 0).toString(16).padStart(8, "0");
 }
 
 function timingSafeEqual(a, b) {
@@ -110,7 +111,7 @@ export async function onRequest(context) {
     const form = await request.formData();
     const code = (form.get("code") || "").toString().trim();
     if (secret && timingSafeEqual(code, secret)) {
-      const sig = await hmacHex(secret, SIGNED_MESSAGE);
+      const sig = hashSecret(secret);
       const res = Response.redirect(new URL("/", request.url), 303);
       res.headers.set(
         "Set-Cookie",
@@ -123,11 +124,8 @@ export async function onRequest(context) {
 
   if (secret) {
     const cookie = getCookie(request, COOKIE_NAME);
-    if (cookie) {
-      const expected = await hmacHex(secret, SIGNED_MESSAGE);
-      if (timingSafeEqual(cookie, expected)) {
-        return context.next();
-      }
+    if (cookie && timingSafeEqual(cookie, hashSecret(secret))) {
+      return context.next();
     }
   }
 
