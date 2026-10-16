@@ -17,8 +17,7 @@ const GATE_PATH = "/enter";
 const CHECK_PATH = "/gate-check";
 
 // cyrb53: fast, deterministic, non-reversible 53-bit hash.
-// Used instead of crypto.subtle because the async WebCrypto HMAC threw
-// uncaught 500s in the Pages Functions runtime.
+// Synchronous (no WebCrypto) for maximum runtime compatibility.
 function hashSecret(str) {
   let h1 = 0xdeadbeef, h2 = 0x41c6ce57;
   const s = "maniac-gate-v1|" + str;
@@ -54,6 +53,15 @@ function getCookie(request, name) {
     }
   }
   return null;
+}
+
+function redirectWithCookie(url, cookieValue) {
+  const headers = { "Location": url.toString() };
+  if (cookieValue) {
+    headers["Set-Cookie"] =
+      `${COOKIE_NAME}=${cookieValue}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=31536000`;
+  }
+  return new Response(null, { status: 303, headers });
 }
 
 function gatePage(failed) {
@@ -111,15 +119,9 @@ export async function onRequest(context) {
     const form = await request.formData();
     const code = (form.get("code") || "").toString().trim();
     if (secret && timingSafeEqual(code, secret)) {
-      const sig = hashSecret(secret);
-      const res = Response.redirect(new URL("/", request.url), 303);
-      res.headers.set(
-        "Set-Cookie",
-        `${COOKIE_NAME}=${sig}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=31536000`
-      );
-      return res;
+      return redirectWithCookie(new URL("/", request.url), hashSecret(secret));
     }
-    return Response.redirect(new URL(`${GATE_PATH}?e=1`, request.url), 303);
+    return redirectWithCookie(new URL(`${GATE_PATH}?e=1`, request.url), null);
   }
 
   if (secret) {
@@ -129,5 +131,5 @@ export async function onRequest(context) {
     }
   }
 
-  return Response.redirect(new URL(GATE_PATH, request.url), 303);
+  return redirectWithCookie(new URL(GATE_PATH, request.url), null);
 }
